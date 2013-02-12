@@ -36,34 +36,50 @@
 @synthesize uniqueTilecacheKey;
 @synthesize wms;
 
--(id) init 
-{ 
-    if (![super init]) 
-        return nil; 
+-(id) init
+{
+    if (![super init])
+        return nil;
     
     // The code below is based on the followin URL, but fixed for this use
     // http://groups.google.com/group/route-me-map/browse_thread/thread/b6aa3757d46055aa/c93e7b0c861973e5?lnk=gst&q=900913#c93e7b0c861973e5
     
-    initialResolution = 2 * M_PI * 6378137 / kDefaultTileSize; 
-    originShift = 2 * M_PI * 6378137 / 2.0; 
+    initialResolution = 2 * M_PI * 6378137 / kDefaultTileSize;
+    originShift = 2 * M_PI * 6378137 / 2.0;
     
     [self setMinZoom:1.0];
     [self setMaxZoom:18.0];
-
+    
     // some default values
     [self setName:@"wms"];
     [self setUniqueTilecacheKey:@"wms"];
     
-    return self; 
-} 
+    return self;
+}
 
 -(NSString*) bboxForTile: (RMTile) tile
 {
     float resolution = [self resolutionAtZoom: tile.zoom];
     CGPoint min = [self pixelsToMetersAtZoom: (tile.x     * kDefaultTileSize) PixelY:((tile.y+1) * kDefaultTileSize) atResolution:resolution];
     CGPoint max = [self pixelsToMetersAtZoom: ((tile.x+1) * kDefaultTileSize) PixelY:((tile.y)   * kDefaultTileSize) atResolution:resolution];
-    return [NSString stringWithFormat:@"%f,%f,%f,%f", 
-            min.x, min.y, max.x, max.y];
+    //    CGPoint min = CGPointMake(-122.315214, 37.492110);
+    //    CGPoint max = CGPointMake(-122.415214, 37.592110);
+    CLLocationCoordinate2D minLatLon = [self MetersToLatLon:min];
+    CLLocationCoordinate2D maxLatLon = [self MetersToLatLon:max];
+    
+    //    return [NSString stringWithFormat:@"%f,%f,%f,%f", min.x, min.y, max.x, max.y];
+    return [NSString stringWithFormat:@"%f,%f,%f,%f", minLatLon.longitude, minLatLon.latitude, maxLatLon.longitude, maxLatLon.latitude];
+}
+
+//Converts XY point from Spherical Mercator EPSG:900913 to lat/lon in WGS84 Datum
+-(CLLocationCoordinate2D) MetersToLatLon: (CGPoint) meters
+{
+    CLLocationCoordinate2D latlon;
+    latlon.longitude = (meters.x / originShift) * 180.0;
+    latlon.latitude = (meters.y / originShift) * 180.0;
+    
+    latlon.latitude = 180 /M_PI * (2 * atan( exp( latlon.latitude * M_PI / 180.0)) - M_PI / 2.0);
+    return latlon;
 }
 
 -(NSString*) tileURL: (RMTile) tile
@@ -72,20 +88,20 @@
     return [wms createGetMapForBbox:bbox size:CGSizeMake(kDefaultTileSize, kDefaultTileSize)];
 }
 
-//Resolution (meters/pixel) for given zoom level (measured at Equator) 
--(float) resolutionAtZoom : (int) zoom 
-{ 
-    return initialResolution /pow (2,zoom); 
-} 
+//Resolution (meters/pixel) for given zoom level (measured at Equator)
+-(float) resolutionAtZoom : (int) zoom
+{
+    return initialResolution /pow (2,zoom);
+}
 
-// Converts pixel coordinates in given resolution to EPSG: 900913 
--(CGPoint) pixelsToMetersAtZoom: (int) px PixelY:(int)py atResolution:(float) resolution 
-{ 
-    CGPoint meters; 
-    meters.x = (px * resolution) - originShift; 
-    meters.y = originShift - (py * resolution); 
-    return meters; 
-} 
+// Converts pixel coordinates in given resolution to EPSG: 900913
+-(CGPoint) pixelsToMetersAtZoom: (int) px PixelY:(int)py atResolution:(float) resolution
+{
+    CGPoint meters;
+    meters.x = (px * resolution) - originShift;
+    meters.y = originShift - (py * resolution);
+    return meters;
+}
 
 - (void) dealloc
 {
