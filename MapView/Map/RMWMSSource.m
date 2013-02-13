@@ -57,22 +57,20 @@
     return self;
 }
 
--(NSString*) bboxForTile: (RMTile) tile
-{
-    float resolution = [self resolutionAtZoom: tile.zoom];
-    CGPoint min = [self pixelsToMetersAtZoom: (tile.x     * kDefaultTileSize) PixelY:((tile.y+1) * kDefaultTileSize) atResolution:resolution];
-    CGPoint max = [self pixelsToMetersAtZoom: ((tile.x+1) * kDefaultTileSize) PixelY:((tile.y)   * kDefaultTileSize) atResolution:resolution];
-    //    CGPoint min = CGPointMake(-122.315214, 37.492110);
-    //    CGPoint max = CGPointMake(-122.415214, 37.592110);
-    CLLocationCoordinate2D minLatLon = [self MetersToLatLon:min];
-    CLLocationCoordinate2D maxLatLon = [self MetersToLatLon:max];
+- (NSString*)bboxForTile:(RMTile)tile {
+    float resolution = [self resolutionAtZoom:tile.zoom];
+    CGPoint min = [self pixelsToMetersAtZoom:(tile.x     * kDefaultTileSize) PixelY:((tile.y+1) * kDefaultTileSize) atResolution:resolution];
+    CGPoint max = [self pixelsToMetersAtZoom:((tile.x+1) * kDefaultTileSize) PixelY:((tile.y)   * kDefaultTileSize) atResolution:resolution];
+    // We don't need meters, but Lat/Lon pairs
+    CLLocationCoordinate2D minLatLon = [self metersToLatLon:min];
+    CLLocationCoordinate2D maxLatLon = [self metersToLatLon:max];
     
     //    return [NSString stringWithFormat:@"%f,%f,%f,%f", min.x, min.y, max.x, max.y];
     return [NSString stringWithFormat:@"%f,%f,%f,%f", minLatLon.longitude, minLatLon.latitude, maxLatLon.longitude, maxLatLon.latitude];
 }
 
 //Converts XY point from Spherical Mercator EPSG:900913 to lat/lon in WGS84 Datum
--(CLLocationCoordinate2D) MetersToLatLon: (CGPoint) meters
+-(CLLocationCoordinate2D)metersToLatLon:(CGPoint)meters
 {
     CLLocationCoordinate2D latlon;
     latlon.longitude = (meters.x / originShift) * 180.0;
